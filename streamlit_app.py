@@ -1,13 +1,35 @@
 import streamlit as st
-import os
-import json
+import re
+import unicodedata
 from pathlib import Path
 from datetime import datetime
-from urllib.parse import quote
 
 # Configuración
 UPLOAD_FOLDER = Path(__file__).parent / "uploads_streamlit"
-UPLOAD_FOLDER.mkdir(exist_ok=True)
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+def nombre_seguro(nombre_original: str) -> str:
+    """Normaliza el nombre para evitar caracteres problemáticos en rutas."""
+    stem = Path(nombre_original).stem
+    stem_ascii = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode("ascii")
+    stem_ascii = re.sub(r"[^a-zA-Z0-9_-]+", "_", stem_ascii).strip("_")
+    return stem_ascii or "archivo"
+
+
+def construir_nombre_archivo(nombre_original: str) -> str:
+    ext = Path(nombre_original).suffix.lower().lstrip(".")
+    marca_tiempo = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    base = nombre_seguro(nombre_original)
+    return f"blancos_{marca_tiempo}_{base}.{ext}" if ext else f"blancos_{marca_tiempo}_{base}"
+
+
+def listar_archivos() -> list[Path]:
+    return sorted(
+        [filepath for filepath in UPLOAD_FOLDER.glob("*") if filepath.is_file()],
+        key=lambda x: x.stat().st_mtime,
+        reverse=True,
+    )
 
 # Configurar página
 st.set_page_config(
@@ -51,6 +73,19 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+feedback = st.session_state.pop("upload_feedback", None)
+if feedback:
+    ok = feedback.get("ok", 0)
+    failed = feedback.get("failed", 0)
+    if ok and not failed:
+        st.success(f"✅ Se cargaron correctamente {ok} archivo(s).")
+    elif ok and failed:
+        st.warning(f"⚠️ Se cargaron {ok} archivo(s) y {failed} fallaron.")
+    else:
+        st.error("❌ No se pudo guardar ningún archivo. Revisa el detalle en la tab de carga.")
+
+files = listar_archivos()
+
 # Tabs
 tab1, tab2, tab3 = st.tabs(["📤 Subir Archivos", "📋 Gestión de Archivos", "ℹ️ Información"])
 
@@ -73,24 +108,23 @@ with tab1:
                 status_text.text(f"Subiendo {idx + 1}/{len(uploaded_files)}: {uploaded_file.name}...")
                 
                 try:
-                    # Generar nombre seguro
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    ext = uploaded_file.name.rsplit('.', 1)[1].lower()
-                    filename = f"blancos_{timestamp}_{uploaded_file.name.rsplit('.', 1)[0]}.{ext}"
+                    # Generar nombre de archivo robusto y único
+                    filename = construir_nombre_archivo(uploaded_file.name)
                     
                     # Guardar archivo
                     filepath = UPLOAD_FOLDER / filename
+                    file_bytes = uploaded_file.getvalue()
+                    if not file_bytes:
+                        raise ValueError("El archivo está vacío o no se pudo leer")
+
                     with open(filepath, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    
-                    # Generar URL pública
-                    file_url = st.write(f"✅ {uploaded_file.name}")
+                        f.write(file_bytes)
                     
                     results.append({
                         "filename": filename,
                         "original_name": uploaded_file.name,
                         "size": uploaded_file.size,
-                        "timestamp": timestamp,
+                        "timestamp": datetime.now().isoformat(),
                         "success": True,
                     })
                     
@@ -102,8 +136,18 @@ with tab1:
                     })
                 
                 progress_bar.progress((idx + 1) / len(uploaded_files))
-            
-            status_text.success(f"✅ {len(uploaded_files)} archivo(s) subido(s)")
+
+            ok_results = [result for result in results if result["success"]]
+            failed_results = [result for result in results if not result["success"]]
+
+            if ok_results and not failed_results:
+                status_text.success(f"✅ {len(ok_results)} archivo(s) subido(s)")
+            elif ok_results and failed_results:
+                status_text.warning(
+                    f"⚠️ {len(ok_results)} subido(s), {len(failed_results)} con error"
+                )
+            else:
+                status_text.error("❌ Ningún archivo se pudo subir")
             
             # Mostrar resumen
             st.markdown("### Resumen de carga:")
@@ -113,11 +157,20 @@ with tab1:
                 else:
                     st.error(f"❌ {result['filename']}: {result.get('error', 'Error desconocido')}")
 
+            st.session_state["upload_feedback"] = {
+                "ok": len(ok_results),
+                "failed": len(failed_results),
+            }
+
+            # Fuerza recarga para que la tab de gestión refleje archivos recién subidos.
+            if ok_results:
+                st.rerun()
+
 with tab2:
     st.subheader("Gestión de archivos")
-    
-    # Listar archivos
-    files = sorted(UPLOAD_FOLDER.glob("*"), key=lambda x: x.stat().st_mtime, reverse=True)
+
+    if st.button("🔄 Refrescar listado", use_container_width=False):
+        st.rerun()
     
     if not files:
         st.info("📭 No hay archivos almacenados aún")
@@ -182,14 +235,14 @@ with tab3:
     ### 🔗 Cómo usar desde la app React
     
     1. **URL del servidor**: `https://TU-USUARIO-streamlit-multimedia.streamlit.app`
-    2. **Endpoint de subida**: No automatizado (subir manualmente aquí)
-    3. **Endpoint de descarga**: `/files/blancos_YYYYMMDD_HHMMSS_nombre.ext`
+    2. **Detección automática**: la app React NO lee automáticamente lo subido aquí
+    3. **API para integración automática**: usa `app.py` (Flask) con `/upload`, `/list`, `/files`, `/health`
+    4. **Este Streamlit** funciona como panel manual de carga/descarga
     
     ### 📤 Proceso
-    1. Sube archivos aquí en Streamlit
-    2. Obtén el nombre del archivo
-    3. Construye la URL: `https://TU-APP.streamlit.app/file/...`
-    4. Envía esa URL a WhatsApp desde la app React
+    1. Sube archivos aquí en Streamlit (manual)
+    2. Revisa el listado en "Gestión de Archivos"
+    3. Para flujo automático con React + WhatsApp, usa servidor Flask (`app.py`)
     
     ### 🚀 Deployment en Streamlit Cloud
     
