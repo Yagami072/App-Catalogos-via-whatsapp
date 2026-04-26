@@ -1,0 +1,16 @@
+[theme]
+primaryColor = "#ff5ecf"
+backgroundColor = "#0b050b"
+secondaryBackgroundColor = "#170917"
+textColor = "#ffe8fb"
+font = "sans serif"
+
+[client]
+showErrorDetails = true
+
+[logger]
+level = "info"
+
+[server]
+maxUploadSize = 200
+enableXsrfProtection = true
