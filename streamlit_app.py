@@ -852,46 +852,189 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    .header {
-        background: linear-gradient(135deg, #ff5ecf 0%, #ff98e8 100%);
-        padding: 20px;
-        border-radius: 12px;
-        color: #2b0620;
-        margin-bottom: 18px;
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+
+    :root {
+        --rose-1: #ff6ea8;
+        --rose-2: #ffc5df;
+        --rose-3: #ff95c4;
+        --ink-1: #140a15;
+        --ink-2: #201025;
+        --text-1: #fff2f9;
+        --text-2: #f3cde1;
+        --line-soft: rgba(255, 174, 215, 0.24);
+        --line-strong: rgba(255, 138, 188, 0.46);
+        --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.28);
     }
-    .header h1, .header p {
+
+    html, body, [class*="css"] {
+        font-family: "Manrope", sans-serif;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(circle at 12% 0%, rgba(255, 120, 175, 0.18), transparent 42%),
+            radial-gradient(circle at 90% 100%, rgba(255, 184, 222, 0.18), transparent 42%),
+            linear-gradient(160deg, #110813 0%, #170b1a 45%, #0f070f 100%);
+        color: var(--text-1);
+    }
+
+    [data-testid="stAppViewContainer"] > .main {
+        background: transparent;
+    }
+
+    .block-container {
+        max-width: 1320px;
+        padding-top: 1.4rem;
+        padding-bottom: 2.4rem;
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(27, 11, 27, 0.92), rgba(18, 8, 18, 0.92));
+        border-right: 1px solid var(--line-soft);
+    }
+
+    .header {
+        background: linear-gradient(140deg, rgba(255, 114, 174, 0.42), rgba(255, 190, 225, 0.2));
+        border: 1px solid var(--line-strong);
+        box-shadow: var(--shadow-soft);
+        backdrop-filter: blur(12px);
+        padding: 1.15rem 1.2rem;
+        border-radius: 18px;
+        color: var(--text-1);
+        margin-bottom: 1rem;
+    }
+
+    .header h1,
+    .header p {
         margin: 0;
     }
-    .header p {
-        margin-top: 8px;
+
+    .header h1 {
+        font-family: "Fraunces", serif;
+        font-size: clamp(1.55rem, 2.55vw, 2.25rem);
+        letter-spacing: 0.01em;
+        color: #fff7fc;
     }
+
+    .header p {
+        margin-top: 0.38rem;
+        color: var(--text-2);
+        font-weight: 500;
+        font-size: 0.98rem;
+    }
+
+    [data-testid="stMetric"] {
+        border: 1px solid var(--line-soft);
+        background: linear-gradient(180deg, rgba(255, 150, 203, 0.09), rgba(22, 11, 22, 0.82));
+        border-radius: 16px;
+        padding: 0.72rem 0.82rem;
+        box-shadow: var(--shadow-soft);
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: var(--text-2);
+        font-weight: 650;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: #fff2f9;
+        font-weight: 800;
+    }
+
+    [data-testid="stTabs"] [role="tablist"] {
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    [data-testid="stTabs"] [role="tab"] {
+        border-radius: 999px;
+        border: 1px solid var(--line-soft);
+        background: rgba(255, 145, 194, 0.1);
+        color: var(--text-2);
+        font-weight: 700;
+        padding: 0.36rem 0.9rem;
+    }
+
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        border-color: rgba(255, 167, 207, 0.64);
+        background: linear-gradient(135deg, #ff78b4 0%, #ffc4e0 100%);
+        color: #2d0c1c;
+    }
+
+    div[data-baseweb="input"] > div,
+    div[data-baseweb="select"] > div,
+    textarea {
+        background: rgba(26, 11, 24, 0.8) !important;
+        border: 1px solid rgba(255, 171, 211, 0.28) !important;
+        border-radius: 12px !important;
+        color: var(--text-1) !important;
+    }
+
+    div[data-baseweb="input"] input,
+    textarea {
+        color: var(--text-1) !important;
+    }
+
+    .stButton > button {
+        background: linear-gradient(135deg, #ff79b5 0%, #ffc4e0 100%);
+        color: #2a0a1a;
+        border: none;
+        font-weight: 750;
+        border-radius: 11px;
+        box-shadow: 0 9px 22px rgba(255, 120, 180, 0.28);
+        transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 13px 28px rgba(255, 120, 180, 0.38);
+    }
+
     .pdf-fallback {
-        min-height: 210px;
-        border-radius: 12px;
-        border: 1px dashed rgba(255, 94, 207, 0.35);
-        background: linear-gradient(180deg, rgba(255, 94, 207, 0.12), rgba(23, 9, 23, 0.55));
+        min-height: 215px;
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 168, 210, 0.4);
+        background: linear-gradient(180deg, rgba(255, 116, 178, 0.16), rgba(20, 10, 21, 0.7));
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
         font-weight: 700;
-        color: #ffd7f5;
-        padding: 14px;
+        color: #ffe2f3;
+        padding: 0.85rem;
     }
+
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: linear-gradient(180deg, rgba(255, 94, 207, 0.08), rgba(13, 7, 15, 0.72));
-        border: 1px solid rgba(255, 94, 207, 0.24) !important;
-        border-radius: 14px !important;
-        padding: 0.55rem;
+        background: linear-gradient(180deg, rgba(255, 130, 186, 0.11), rgba(15, 8, 17, 0.8));
+        border: 1px solid var(--line-soft) !important;
+        border-radius: 16px !important;
+        padding: 0.7rem;
         min-height: 100%;
+        box-shadow: var(--shadow-soft);
     }
+
     .card-title {
-        min-height: 2.8rem;
+        min-height: 2.75rem;
+        font-family: "Fraunces", serif;
+        font-size: 1rem;
+        line-height: 1.3;
         font-weight: 700;
-        color: #ffe9fb;
-        margin-bottom: 0.2rem;
+        color: #fff1f8;
+        margin-bottom: 0.24rem;
         word-break: break-word;
     }
+
+    [data-testid="stCaptionContainer"] {
+        color: #f0c6db;
+    }
+
+    [data-testid="stExpander"] {
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: rgba(24, 10, 24, 0.55);
+    }
+
     div[class*="st-key-catalog_send_"] button {
         background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
         color: #ffffff !important;
