@@ -884,9 +884,11 @@ st.markdown(
     }
 
     .block-container {
-        max-width: 1320px;
-        padding-top: 1.2rem;
+        max-width: 100% !important;
+        padding-top: 1.1rem;
         padding-bottom: 2.2rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     [data-testid="stSidebar"] {
@@ -1009,7 +1011,7 @@ st.markdown(
     }
 
     .pdf-fallback {
-        min-height: 215px;
+        min-height: 190px;
         border-radius: 14px;
         border: 1px dashed rgba(174, 186, 210, 0.4);
         background: linear-gradient(180deg, rgba(40, 49, 65, 0.9), rgba(26, 33, 45, 0.94));
@@ -1022,13 +1024,19 @@ st.markdown(
         padding: 0.85rem;
     }
 
-    div[data-testid="stVerticalBlockBorderWrapper"] {
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(div[class*="st-key-catalog_name_"]) {
         background: linear-gradient(180deg, rgba(31, 39, 53, 0.94), rgba(22, 29, 40, 0.95));
         border: 1px solid rgba(153, 167, 191, 0.25) !important;
         border-radius: 16px !important;
         padding: 0.72rem;
-        min-height: 100%;
         box-shadow: var(--shadow-soft);
+    }
+
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(div[class*="st-key-catalog_name_"]) img {
+        border-radius: 12px;
+        width: 100%;
+        height: 230px;
+        object-fit: cover;
     }
 
     .card-title {
@@ -1059,6 +1067,17 @@ st.markdown(
         font-weight: 700 !important;
         border-radius: 999px !important;
         box-shadow: 0 10px 26px rgba(18, 140, 126, 0.35) !important;
+    }
+
+    div[class*="st-key-catalog_save_"] button,
+    div[class*="st-key-catalog_send_"] button {
+        white-space: nowrap !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        min-height: 2.45rem !important;
+        font-size: 0.92rem !important;
+        padding: 0.3rem 0.72rem !important;
+        line-height: 1.15 !important;
     }
 
     div[class*="st-key-catalog_send_"] button:hover {
@@ -1165,7 +1184,7 @@ with tab_catalog:
                                 key=f"catalog_name_{item['id']}",
                             )
 
-                            action_col_1, action_col_2 = st.columns(2)
+                            action_col_1, action_col_2 = st.columns([1, 1.25], gap="small")
                             if action_col_1.button(
                                 "Guardar",
                                 key=f"catalog_save_{item['id']}",
@@ -1179,7 +1198,7 @@ with tab_catalog:
                                     st.error(str(rename_error))
 
                             if action_col_2.button(
-                                "🟢 WhatsApp",
+                                "Enviar WA",
                                 key=f"catalog_send_{item['id']}",
                                 use_container_width=True,
                             ):
