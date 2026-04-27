@@ -8,6 +8,9 @@ font = "sans serif"
 [client]
 showErrorDetails = true
 
+[browser]
+gatherUsageStats = false
+
 [logger]
 level = "info"
 
