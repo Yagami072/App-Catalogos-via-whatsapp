@@ -923,7 +923,6 @@ tab_catalog, tab_manage, tab_send, tab_info = st.tabs(
 )
 
 with tab_catalog:
-    st.subheader("Catalogos por categoria")
     col_q, col_cat = st.columns([2, 1])
     catalog_query = col_q.text_input("Buscar en catalogos", placeholder="Nombre, categoria, marca, tags")
     catalog_category = col_cat.selectbox("Categoria", ["Todas", *categories], index=0)
