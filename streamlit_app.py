@@ -12,6 +12,11 @@ from typing import Any
 import requests
 import streamlit as st
 
+try:
+    import fitz
+except Exception:
+    fitz = None
+
 APP_DIR = Path(__file__).parent
 UPLOAD_FOLDER = APP_DIR / "uploads_streamlit"
 DB_PATH = APP_DIR / "blancos_primavera.db"
@@ -217,6 +222,32 @@ def update_media_metadata(item_id: str, category: str, section: str, brand: str,
             WHERE id = ?
             """,
             (category, section, brand, json.dumps(tags, ensure_ascii=True), item_id),
+        )
+        conn.commit()
+
+
+def update_media_name(item_id: str, new_name: str) -> None:
+    clean_name = new_name.strip()
+    if not clean_name:
+        raise ValueError("El nombre no puede estar vacio")
+
+    with closing(db_connect()) as conn:
+        row = conn.execute(
+            "SELECT original_name FROM media_items WHERE id = ?",
+            (item_id,),
+        ).fetchone()
+
+        if not row:
+            raise ValueError("No se encontro el catalogo a renombrar")
+
+        current_name = str(row["original_name"])
+        current_ext = Path(current_name).suffix
+        new_ext = Path(clean_name).suffix
+        normalized_name = clean_name if new_ext else f"{clean_name}{current_ext}"
+
+        conn.execute(
+            "UPDATE media_items SET original_name = ? WHERE id = ?",
+            (normalized_name, item_id),
         )
         conn.commit()
 
@@ -619,6 +650,31 @@ def send_media_message(config: dict[str, str], destination: str, item: dict[str,
     return message_id
 
 
+def send_catalog_from_card(
+    config: dict[str, str],
+    item: dict[str, Any],
+    destination: str,
+    bootstrap_mode: str,
+    message: str,
+) -> str:
+    steps: list[str] = []
+
+    if bootstrap_mode == "Plantilla + mensaje + catalogo":
+        ack = send_template_and_text(config, destination, message)
+        steps.append(f"Template: {ack['template_message_id']}")
+    elif bootstrap_mode == "Mensaje + catalogo (sin plantilla)":
+        body = message.strip()
+        if not body:
+            raise ValueError("Escribe un mensaje para el modo 'Mensaje + catalogo (sin plantilla)'")
+        text_id = send_text_only(config, destination, body)
+        steps.append(f"Texto: {text_id}")
+
+    media_id = upload_media_to_whatsapp(config, item)
+    message_id = send_media_message(config, destination, item, media_id)
+    steps.append(f"Catalogo: {message_id}")
+    return " | ".join(steps)
+
+
 def matches_query(item: dict[str, Any], query: str) -> bool:
     q = query.strip().lower()
     if not q:
@@ -739,6 +795,49 @@ def show_media_preview(item: dict[str, Any], key_suffix: str) -> None:
         )
 
 
+@st.cache_data(show_spinner=False, ttl=1800)
+def build_pdf_thumbnail(file_path_str: str) -> bytes | None:
+    if fitz is None:
+        return None
+
+    file_path = Path(file_path_str)
+    if not file_path.exists():
+        return None
+
+    try:
+        doc = fitz.open(file_path)
+        if doc.page_count == 0:
+            return None
+        page = doc.load_page(0)
+        pix = page.get_pixmap(matrix=fitz.Matrix(0.9, 0.9), alpha=False)
+        data = pix.tobytes("png")
+        doc.close()
+        return data
+    except Exception:
+        return None
+
+
+def show_catalog_thumbnail(item: dict[str, Any]) -> None:
+    file_path = Path(item["file_path"])
+    if not file_path.exists():
+        st.warning("Archivo no encontrado")
+        return
+
+    if item["kind"] == "image":
+        st.image(str(file_path), use_container_width=True)
+        return
+
+    if item["kind"] == "pdf":
+        thumb_data = build_pdf_thumbnail(str(file_path))
+        if thumb_data:
+            st.image(thumb_data, use_container_width=True)
+        else:
+            st.markdown('<div class="pdf-fallback">PDF<br/>Sin miniatura</div>', unsafe_allow_html=True)
+        return
+
+    st.markdown('<div class="pdf-fallback">Archivo no visualizable</div>', unsafe_allow_html=True)
+
+
 st.set_page_config(
     page_title="Blancos Primavera | Multimedia",
     page_icon="📦",
@@ -761,6 +860,31 @@ st.markdown(
     }
     .header p {
         margin-top: 8px;
+    }
+    .pdf-fallback {
+        min-height: 210px;
+        border-radius: 12px;
+        border: 1px dashed rgba(255, 94, 207, 0.35);
+        background: linear-gradient(180deg, rgba(255, 94, 207, 0.12), rgba(23, 9, 23, 0.55));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-weight: 700;
+        color: #ffd7f5;
+        padding: 14px;
+    }
+    div[class*="st-key-catalog_send_"] button {
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        font-weight: 700 !important;
+        border-radius: 999px !important;
+        box-shadow: 0 10px 26px rgba(18, 140, 126, 0.35) !important;
+    }
+    div[class*="st-key-catalog_send_"] button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 30px rgba(18, 140, 126, 0.45) !important;
     }
 </style>
 """,
@@ -804,6 +928,31 @@ with tab_catalog:
     catalog_query = col_q.text_input("Buscar en catalogos", placeholder="Nombre, categoria, marca, tags")
     catalog_category = col_cat.selectbox("Categoria", ["Todas", *categories], index=0)
 
+    st.markdown("#### Envio rapido desde cada card")
+    quick_col_1, quick_col_2, quick_col_3 = st.columns([1.2, 1.4, 2.0])
+    quick_destination = quick_col_1.text_input(
+        "Numero destino",
+        placeholder="5215512345678",
+        key="catalog_quick_destination",
+    )
+    quick_send_mode = quick_col_2.selectbox(
+        "Modo",
+        options=[
+            "Solo catalogo (sin plantilla)",
+            "Mensaje + catalogo (sin plantilla)",
+            "Plantilla + mensaje + catalogo",
+        ],
+        key="catalog_quick_mode",
+    )
+    quick_message = quick_col_3.text_input(
+        "Mensaje opcional",
+        value="Te comparto este catalogo de Blancos Primavera.",
+        key="catalog_quick_message",
+    )
+    st.caption(
+        "Tip: fuera de la ventana de 24h, usa 'Plantilla + mensaje + catalogo' para asegurar entrega."
+    )
+
     catalog_items = filter_media(
         all_media,
         query=catalog_query,
@@ -824,11 +973,60 @@ with tab_catalog:
             cols = st.columns(3)
             for idx, item in enumerate(group_items):
                 with cols[idx % 3]:
+                    show_catalog_thumbnail(item)
                     st.markdown(f"**{item['original_name']}**")
                     st.caption(
                         f"{bytes_to_text(item['size'])} | {item['category']} / {item['section']} / {item['brand']}"
                     )
-                    show_media_preview(item, "catalog")
+
+                    rename_value = st.text_input(
+                        "Editar nombre",
+                        value=item["original_name"],
+                        key=f"catalog_name_{item['id']}",
+                    )
+
+                    action_col_1, action_col_2 = st.columns(2)
+                    if action_col_1.button(
+                        "Guardar nombre",
+                        key=f"catalog_save_{item['id']}",
+                        use_container_width=True,
+                    ):
+                        try:
+                            update_media_name(item["id"], rename_value)
+                            st.success("Nombre actualizado")
+                            st.rerun()
+                        except Exception as rename_error:
+                            st.error(str(rename_error))
+
+                    if action_col_2.button(
+                        "🟢 WhatsApp",
+                        key=f"catalog_send_{item['id']}",
+                        use_container_width=True,
+                    ):
+                        if not quick_destination.strip():
+                            st.error("Ingresa un numero destino para envio rapido")
+                        else:
+                            try:
+                                cfg_now = load_wa_config()
+                                with st.spinner("Enviando catalogo por WhatsApp..."):
+                                    send_detail = send_catalog_from_card(
+                                        cfg_now,
+                                        item,
+                                        quick_destination,
+                                        quick_send_mode,
+                                        quick_message,
+                                    )
+                                st.success(f"Catalogo enviado: {send_detail}")
+                            except Exception as send_error:
+                                error_text = str(send_error)
+                                st.error(error_text)
+                                if "code=131" in error_text or "window" in error_text.lower() or "plantilla" in error_text.lower():
+                                    st.warning(
+                                        "El chat puede estar fuera de 24h. Prueba el modo 'Plantilla + mensaje + catalogo'."
+                                    )
+
+                    with st.expander("Opciones del catalogo"):
+                        show_media_preview(item, f"catalog_{item['id']}")
 
 with tab_manage:
     st.subheader("Carga y clasificacion")
