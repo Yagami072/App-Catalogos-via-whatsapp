@@ -852,31 +852,31 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Sora:wght@400;500;600;700&display=swap');
 
     :root {
-        --rose-1: #ff6ea8;
-        --rose-2: #ffc5df;
-        --rose-3: #ff95c4;
-        --ink-1: #140a15;
-        --ink-2: #201025;
-        --text-1: #fff2f9;
-        --text-2: #f3cde1;
-        --line-soft: rgba(255, 174, 215, 0.24);
-        --line-strong: rgba(255, 138, 188, 0.46);
-        --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.28);
+        --bg-main: #0f131a;
+        --bg-elev: #171d27;
+        --bg-soft: #1d2431;
+        --text-main: #f3f6fb;
+        --text-muted: #b4bfd1;
+        --line-soft: rgba(159, 174, 201, 0.2);
+        --line-strong: rgba(212, 181, 196, 0.45);
+        --accent: #cf9eb6;
+        --accent-soft: #e7c7d6;
+        --shadow-soft: 0 18px 42px rgba(0, 0, 0, 0.32);
     }
 
-    html, body, [class*="css"] {
-        font-family: "Manrope", sans-serif;
+    html, body, [class*="css"], p, div, span, label {
+        font-family: "Sora", sans-serif;
     }
 
     [data-testid="stAppViewContainer"] {
         background:
-            radial-gradient(circle at 12% 0%, rgba(255, 120, 175, 0.18), transparent 42%),
-            radial-gradient(circle at 90% 100%, rgba(255, 184, 222, 0.18), transparent 42%),
-            linear-gradient(160deg, #110813 0%, #170b1a 45%, #0f070f 100%);
-        color: var(--text-1);
+            radial-gradient(1200px 520px at 5% -10%, rgba(207, 158, 182, 0.12), transparent 55%),
+            radial-gradient(900px 420px at 100% 120%, rgba(127, 151, 186, 0.14), transparent 55%),
+            linear-gradient(180deg, #0d1118 0%, #0f141c 46%, #0d1117 100%);
+        color: var(--text-main);
     }
 
     [data-testid="stAppViewContainer"] > .main {
@@ -885,23 +885,23 @@ st.markdown(
 
     .block-container {
         max-width: 1320px;
-        padding-top: 1.4rem;
-        padding-bottom: 2.4rem;
+        padding-top: 1.2rem;
+        padding-bottom: 2.2rem;
     }
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(27, 11, 27, 0.92), rgba(18, 8, 18, 0.92));
+        background: linear-gradient(180deg, rgba(20, 25, 34, 0.96), rgba(16, 20, 28, 0.96));
         border-right: 1px solid var(--line-soft);
     }
 
     .header {
-        background: linear-gradient(140deg, rgba(255, 114, 174, 0.42), rgba(255, 190, 225, 0.2));
-        border: 1px solid var(--line-strong);
+        background: linear-gradient(160deg, rgba(27, 34, 46, 0.9), rgba(20, 24, 34, 0.88));
+        border: 1px solid var(--line-soft);
+        border-top: 1px solid var(--line-strong);
         box-shadow: var(--shadow-soft);
-        backdrop-filter: blur(12px);
-        padding: 1.15rem 1.2rem;
+        padding: 1.2rem 1.3rem;
         border-radius: 18px;
-        color: var(--text-1);
+        color: var(--text-main);
         margin-bottom: 1rem;
     }
 
@@ -911,138 +911,156 @@ st.markdown(
     }
 
     .header h1 {
-        font-family: "Fraunces", serif;
-        font-size: clamp(1.55rem, 2.55vw, 2.25rem);
+        font-family: "Cormorant Garamond", serif;
+        font-size: clamp(1.8rem, 2.75vw, 2.65rem);
         letter-spacing: 0.01em;
-        color: #fff7fc;
+        color: #f7f9ff;
     }
 
     .header p {
-        margin-top: 0.38rem;
-        color: var(--text-2);
+        margin-top: 0.32rem;
+        color: var(--text-muted);
+        font-size: 0.95rem;
         font-weight: 500;
-        font-size: 0.98rem;
     }
 
     [data-testid="stMetric"] {
         border: 1px solid var(--line-soft);
-        background: linear-gradient(180deg, rgba(255, 150, 203, 0.09), rgba(22, 11, 22, 0.82));
-        border-radius: 16px;
-        padding: 0.72rem 0.82rem;
-        box-shadow: var(--shadow-soft);
+        background: linear-gradient(180deg, rgba(34, 42, 56, 0.94), rgba(22, 28, 39, 0.94));
+        border-radius: 14px;
+        padding: 0.75rem 0.85rem;
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
     }
 
     [data-testid="stMetricLabel"] {
-        color: var(--text-2);
-        font-weight: 650;
+        color: var(--text-muted);
+        font-weight: 600;
     }
 
     [data-testid="stMetricValue"] {
-        color: #fff2f9;
-        font-weight: 800;
+        color: var(--text-main);
+        font-weight: 700;
     }
 
     [data-testid="stTabs"] [role="tablist"] {
-        gap: 0.5rem;
+        gap: 0.45rem;
         margin-bottom: 0.25rem;
     }
 
     [data-testid="stTabs"] [role="tab"] {
         border-radius: 999px;
         border: 1px solid var(--line-soft);
-        background: rgba(255, 145, 194, 0.1);
-        color: var(--text-2);
-        font-weight: 700;
-        padding: 0.36rem 0.9rem;
+        background: rgba(26, 33, 45, 0.92);
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.35rem 0.95rem;
     }
 
     [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        border-color: rgba(255, 167, 207, 0.64);
-        background: linear-gradient(135deg, #ff78b4 0%, #ffc4e0 100%);
-        color: #2d0c1c;
+        border-color: rgba(222, 194, 208, 0.58);
+        background: linear-gradient(135deg, #c99fb5 0%, #e2c7d5 100%);
+        color: #15131a;
+    }
+
+    h2, h3, h4 {
+        color: #f5f8ff;
+        letter-spacing: 0.01em;
     }
 
     div[data-baseweb="input"] > div,
     div[data-baseweb="select"] > div,
     textarea {
-        background: rgba(26, 11, 24, 0.8) !important;
-        border: 1px solid rgba(255, 171, 211, 0.28) !important;
+        background: rgba(15, 20, 29, 0.9) !important;
+        border: 1px solid rgba(154, 170, 196, 0.25) !important;
         border-radius: 12px !important;
-        color: var(--text-1) !important;
+        color: var(--text-main) !important;
     }
 
     div[data-baseweb="input"] input,
     textarea {
-        color: var(--text-1) !important;
+        color: var(--text-main) !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        color: rgba(186, 194, 208, 0.68) !important;
     }
 
     .stButton > button {
-        background: linear-gradient(135deg, #ff79b5 0%, #ffc4e0 100%);
-        color: #2a0a1a;
-        border: none;
-        font-weight: 750;
+        background: linear-gradient(180deg, #242f3f 0%, #1b2533 100%);
+        color: #eaf0fb;
+        border: 1px solid rgba(162, 178, 204, 0.34);
+        font-weight: 650;
         border-radius: 11px;
-        box-shadow: 0 9px 22px rgba(255, 120, 180, 0.28);
-        transition: transform 0.16s ease, box-shadow 0.16s ease;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+        transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
     }
 
     .stButton > button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 13px 28px rgba(255, 120, 180, 0.38);
+        border-color: rgba(205, 167, 187, 0.52);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #c99fb5 0%, #e2c7d5 100%);
+        color: #17141a;
+        border: 1px solid rgba(242, 223, 233, 0.52);
     }
 
     .pdf-fallback {
         min-height: 215px;
         border-radius: 14px;
-        border: 1px dashed rgba(255, 168, 210, 0.4);
-        background: linear-gradient(180deg, rgba(255, 116, 178, 0.16), rgba(20, 10, 21, 0.7));
+        border: 1px dashed rgba(174, 186, 210, 0.4);
+        background: linear-gradient(180deg, rgba(40, 49, 65, 0.9), rgba(26, 33, 45, 0.94));
         display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
         font-weight: 700;
-        color: #ffe2f3;
+        color: #d8e0ef;
         padding: 0.85rem;
     }
 
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: linear-gradient(180deg, rgba(255, 130, 186, 0.11), rgba(15, 8, 17, 0.8));
-        border: 1px solid var(--line-soft) !important;
+        background: linear-gradient(180deg, rgba(31, 39, 53, 0.94), rgba(22, 29, 40, 0.95));
+        border: 1px solid rgba(153, 167, 191, 0.25) !important;
         border-radius: 16px !important;
-        padding: 0.7rem;
+        padding: 0.72rem;
         min-height: 100%;
         box-shadow: var(--shadow-soft);
     }
 
     .card-title {
         min-height: 2.75rem;
-        font-family: "Fraunces", serif;
-        font-size: 1rem;
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.15rem;
         line-height: 1.3;
         font-weight: 700;
-        color: #fff1f8;
-        margin-bottom: 0.24rem;
+        color: #f6f8ff;
+        margin-bottom: 0.22rem;
         word-break: break-word;
     }
 
     [data-testid="stCaptionContainer"] {
-        color: #f0c6db;
+        color: #b7c3d8;
     }
 
     [data-testid="stExpander"] {
-        border: 1px solid var(--line-soft);
+        border: 1px solid rgba(154, 170, 196, 0.24);
         border-radius: 12px;
-        background: rgba(24, 10, 24, 0.55);
+        background: rgba(21, 27, 37, 0.84);
     }
 
     div[class*="st-key-catalog_send_"] button {
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+        background: linear-gradient(135deg, #25d366 0%, #128c7e 100%) !important;
         color: #ffffff !important;
         border: none !important;
         font-weight: 700 !important;
         border-radius: 999px !important;
         box-shadow: 0 10px 26px rgba(18, 140, 126, 0.35) !important;
     }
+
     div[class*="st-key-catalog_send_"] button:hover {
         transform: translateY(-1px);
         box-shadow: 0 14px 30px rgba(18, 140, 126, 0.45) !important;
