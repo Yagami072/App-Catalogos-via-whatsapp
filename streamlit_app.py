@@ -838,6 +838,10 @@ def show_catalog_thumbnail(item: dict[str, Any]) -> None:
     st.markdown('<div class="pdf-fallback">Archivo no visualizable</div>', unsafe_allow_html=True)
 
 
+def chunk_items(items: list[dict[str, Any]], chunk_size: int) -> list[list[dict[str, Any]]]:
+    return [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
+
+
 st.set_page_config(
     page_title="Blancos Primavera | Multimedia",
     page_icon="📦",
@@ -873,6 +877,20 @@ st.markdown(
         font-weight: 700;
         color: #ffd7f5;
         padding: 14px;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: linear-gradient(180deg, rgba(255, 94, 207, 0.08), rgba(13, 7, 15, 0.72));
+        border: 1px solid rgba(255, 94, 207, 0.24) !important;
+        border-radius: 14px !important;
+        padding: 0.55rem;
+        min-height: 100%;
+    }
+    .card-title {
+        min-height: 2.8rem;
+        font-weight: 700;
+        color: #ffe9fb;
+        margin-bottom: 0.2rem;
+        word-break: break-word;
     }
     div[class*="st-key-catalog_send_"] button {
         background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
@@ -969,63 +987,69 @@ with tab_catalog:
         for group_name in sorted(grouped.keys()):
             group_items = grouped[group_name]
             st.markdown(f"### {group_name} ({len(group_items)})")
-            cols = st.columns(3)
-            for idx, item in enumerate(group_items):
-                with cols[idx % 3]:
-                    show_catalog_thumbnail(item)
-                    st.markdown(f"**{item['original_name']}**")
-                    st.caption(
-                        f"{bytes_to_text(item['size'])} | {item['category']} / {item['section']} / {item['brand']}"
-                    )
+            for row_items in chunk_items(group_items, 4):
+                row_cols = st.columns(4, gap="large")
+                for col, item in zip(row_cols, row_items):
+                    with col:
+                        with st.container(border=True):
+                            show_catalog_thumbnail(item)
+                            st.markdown(f"<div class='card-title'>{item['original_name']}</div>", unsafe_allow_html=True)
+                            st.caption(
+                                f"{bytes_to_text(item['size'])} | {item['category']} / {item['section']} / {item['brand']}"
+                            )
 
-                    rename_value = st.text_input(
-                        "Editar nombre",
-                        value=item["original_name"],
-                        key=f"catalog_name_{item['id']}",
-                    )
+                            rename_value = st.text_input(
+                                "Editar nombre",
+                                value=item["original_name"],
+                                key=f"catalog_name_{item['id']}",
+                            )
 
-                    action_col_1, action_col_2 = st.columns(2)
-                    if action_col_1.button(
-                        "Guardar nombre",
-                        key=f"catalog_save_{item['id']}",
-                        use_container_width=True,
-                    ):
-                        try:
-                            update_media_name(item["id"], rename_value)
-                            st.success("Nombre actualizado")
-                            st.rerun()
-                        except Exception as rename_error:
-                            st.error(str(rename_error))
+                            action_col_1, action_col_2 = st.columns(2)
+                            if action_col_1.button(
+                                "Guardar",
+                                key=f"catalog_save_{item['id']}",
+                                use_container_width=True,
+                            ):
+                                try:
+                                    update_media_name(item["id"], rename_value)
+                                    st.success("Nombre actualizado")
+                                    st.rerun()
+                                except Exception as rename_error:
+                                    st.error(str(rename_error))
 
-                    if action_col_2.button(
-                        "🟢 WhatsApp",
-                        key=f"catalog_send_{item['id']}",
-                        use_container_width=True,
-                    ):
-                        if not quick_destination.strip():
-                            st.error("Ingresa un numero destino para envio rapido")
-                        else:
-                            try:
-                                cfg_now = load_wa_config()
-                                with st.spinner("Enviando catalogo por WhatsApp..."):
-                                    send_detail = send_catalog_from_card(
-                                        cfg_now,
-                                        item,
-                                        quick_destination,
-                                        quick_send_mode,
-                                        quick_message,
-                                    )
-                                st.success(f"Catalogo enviado: {send_detail}")
-                            except Exception as send_error:
-                                error_text = str(send_error)
-                                st.error(error_text)
-                                if "code=131" in error_text or "window" in error_text.lower() or "plantilla" in error_text.lower():
-                                    st.warning(
-                                        "El chat puede estar fuera de 24h. Prueba el modo 'Plantilla + mensaje + catalogo'."
-                                    )
+                            if action_col_2.button(
+                                "🟢 WhatsApp",
+                                key=f"catalog_send_{item['id']}",
+                                use_container_width=True,
+                            ):
+                                if not quick_destination.strip():
+                                    st.error("Ingresa un numero destino para envio rapido")
+                                else:
+                                    try:
+                                        cfg_now = load_wa_config()
+                                        with st.spinner("Enviando catalogo por WhatsApp..."):
+                                            send_detail = send_catalog_from_card(
+                                                cfg_now,
+                                                item,
+                                                quick_destination,
+                                                quick_send_mode,
+                                                quick_message,
+                                            )
+                                        st.success(f"Catalogo enviado: {send_detail}")
+                                    except Exception as send_error:
+                                        error_text = str(send_error)
+                                        st.error(error_text)
+                                        if (
+                                            "code=131" in error_text
+                                            or "window" in error_text.lower()
+                                            or "plantilla" in error_text.lower()
+                                        ):
+                                            st.warning(
+                                                "El chat puede estar fuera de 24h. Prueba el modo 'Plantilla + mensaje + catalogo'."
+                                            )
 
-                    with st.expander("Opciones del catalogo"):
-                        show_media_preview(item, f"catalog_{item['id']}")
+                            with st.expander("Opciones"):
+                                show_media_preview(item, f"catalog_{item['id']}")
 
 with tab_manage:
     st.subheader("Carga y clasificacion")
