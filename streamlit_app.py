@@ -488,6 +488,43 @@ def send_template_and_text(config: dict[str, str], destination: str, text: str) 
     return template_ack
 
 
+def send_text_only(config: dict[str, str], destination: str, text: str) -> str:
+    token = config["access_token"].strip()
+    phone_number_id = config["phone_number_id"].strip()
+    to = normalize_phone(destination)
+    body_text = text.strip()
+
+    if not token or not phone_number_id:
+        raise ValueError("Configura token y phone_number_id antes de enviar")
+    if not body_text:
+        raise ValueError("El mensaje no puede estar vacio para envio de texto sin plantilla")
+
+    url = f"{GRAPH_API}/{phone_number_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {
+            "body": body_text,
+            "preview_url": False,
+        },
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
+    if not response.ok:
+        raise RuntimeError(f"Error enviando texto sin plantilla: {graph_error_text(response)}")
+
+    message_id = (response.json().get("messages") or [{}])[0].get("id")
+    if not message_id:
+        raise RuntimeError(f"WhatsApp no devolvio message id en texto: {response.text}")
+
+    return message_id
+
+
 def upload_media_to_whatsapp(config: dict[str, str], item: dict[str, Any]) -> str:
     token = config["access_token"].strip()
     phone_number_id = config["phone_number_id"].strip()
@@ -963,6 +1000,21 @@ with tab_send:
 
     st.caption(f"Archivos seleccionados: {len(selected_items)}")
 
+    send_bootstrap_mode = st.radio(
+        "Inicio de envio",
+        options=[
+            "Plantilla + mensaje + catalogos",
+            "Solo catalogos (sin plantilla)",
+            "Solo mensaje + catalogos (sin plantilla)",
+        ],
+        horizontal=False,
+    )
+
+    st.info(
+        "Sin plantilla solo funciona si el chat esta dentro de la ventana de 24h. "
+        "Si esta fuera de ventana, WhatsApp exige plantilla."
+    )
+
     destination = st.text_input("Numero destino (E.164 sin +)", placeholder="5215512345678")
 
     if st.button("Generar resumen"):
@@ -983,8 +1035,21 @@ with tab_send:
         else:
             cfg_now = load_wa_config()
             try:
-                with st.spinner("Enviando plantilla y archivos..."):
-                    ack = send_template_and_text(cfg_now, destination, message_text)
+                ack_summary = "Sin mensaje inicial"
+
+                with st.spinner("Enviando por WhatsApp..."):
+                    if send_bootstrap_mode == "Plantilla + mensaje + catalogos":
+                        ack = send_template_and_text(cfg_now, destination, message_text)
+                        ack_summary = (
+                            f"Template ID: {ack['template_message_id']} | "
+                            f"Texto ID: {ack['text_message_id']}"
+                        )
+                    elif send_bootstrap_mode == "Solo mensaje + catalogos (sin plantilla)":
+                        text_message_id = send_text_only(cfg_now, destination, message_text)
+                        ack_summary = f"Texto sin plantilla ID: {text_message_id}"
+                    else:
+                        # Solo catalogos: no se envia plantilla ni texto, solo archivos.
+                        ack_summary = "Solo catalogos"
 
                     results: list[dict[str, str]] = []
                     progress = st.progress(0.0)
@@ -1009,8 +1074,7 @@ with tab_send:
                     bad_count = len([r for r in results if r["estado"] == "ERROR"])
 
                 st.success(
-                    "Envio completado. "
-                    f"Template ID: {ack['template_message_id']} | Texto ID: {ack['text_message_id']} | "
+                    f"Envio completado. {ack_summary} | "
                     f"Archivos OK: {ok_count}/{len(selected_items)}"
                 )
                 if bad_count:
@@ -1022,7 +1086,13 @@ with tab_send:
                     else:
                         st.error(f"{row['nombre']}: {row['detalle']}")
             except Exception as send_error:
-                st.error(str(send_error))
+                error_text = str(send_error)
+                st.error(error_text)
+                if "code=131" in error_text or "plantilla" in error_text.lower() or "window" in error_text.lower():
+                    st.warning(
+                        "WhatsApp probablemente bloqueo el envio sin plantilla por ventana de 24h. "
+                        "Prueba el modo 'Plantilla + mensaje + catalogos'."
+                    )
 
 with tab_info:
     st.subheader("Informacion de la plataforma")
